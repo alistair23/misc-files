@@ -1,0 +1,5 @@
+escape ^Oo
+
+defscrollback 5000
+scrollback 5000
+
