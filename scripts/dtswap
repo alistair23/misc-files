@@ -1,0 +1,33 @@
+#!/bin/bash
+
+FILE=$1
+if [ -z "$FILE" -o ! -e "$FILE" ]; then
+	echo "Specify a file (.dts or .dtb) to be swapped and printed to stdout." >&2
+	exit 255
+fi
+
+DTB_FILE=
+DTS_FILE=
+
+# check input file name type
+MAGIC_HEADER=$(hexdump -n 4 -ve '"%08x\n"' $FILE)
+#echo "header = $MAGIC_HEADER"
+if [ "$MAGIC_HEADER" = "edfe0dd0" ]; then
+	DTB_FILE=$FILE
+elif grep -q "/dts-v1/" $FILE > /dev/null 2>&1; then
+	DTS_FILE=$FILE
+else
+	echo "Specified file is not a dts or dtb." >&2
+	exit 255
+fi
+
+#echo "DTB_FILE = $DTB_FILE"
+#echo "DTS_FILE = $DTS_FILE"
+
+if [ -z "$DTB_FILE" ]; then
+	dtc -I dts -O dtb $DTS_FILE
+	exit $?
+else
+	dtc -I dtb -O dts $DTB_FILE
+	exit $?
+fi

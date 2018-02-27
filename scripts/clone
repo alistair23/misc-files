@@ -1,0 +1,32 @@
+# Script to clone Yocto stuff
+BRANCH=$1
+
+git clone git://git.openembedded.org/openembedded-core -b ${BRANCH} oe-${BRANCH}
+cd oe-${BRANCH}
+
+git clone git://git.openembedded.org/bitbake -b ${BRANCH}
+git clone git://git.yoctoproject.org/yocto-docs -b ${BRANCH}
+git clone git://git.yoctoproject.org/meta-xilinx -b ${BRANCH}
+git clone git://git.yoctoproject.org/meta-virtualization -b ${BRANCH}
+git clone git://git.openembedded.org/meta-openembedded -b ${BRANCH}
+
+cd meta-xilinx
+git remote add nathans https://github.com/nathanrossi/meta-xilinx.git
+git remote add alistairs git@gitenterprise.xilinx.com:alistai/meta-xilinx.git
+git remote add internal https://gitenterprise.xilinx.com/Yocto/meta-xilinx.git
+git fetch --all
+cd ../
+
+source oe-init-build-env
+
+# find ./conf/bblayers.conf -type f -exec sed -i "s|  \"|  /scratch/alistai/yocto/oe-${BRANCH}/meta-xilinx \\\ \\n  \"|g" {} +
+bitbake-layers add-layer "/scratch/alistai/yocto/oe-${BRANCH}/meta-xilinx"
+bitbake-layers add-layer "/scratch/alistai/yocto/oe-${BRANCH}/meta-openembedded/meta-oe"
+bitbake-layers add-layer "/scratch/alistai/yocto/oe-${BRANCH}/meta-openembedded/meta-python"
+bitbake-layers add-layer "/scratch/alistai/yocto/oe-${BRANCH}/meta-openembedded/meta-networking"
+bitbake-layers add-layer "/scratch/alistai/yocto/oe-${BRANCH}/meta-virtualization"
+
+cd ../
+mv ./${BRANCH} ./build
+
+# MACHINE=zcu102-zynqmp bitbake core-image-minimal

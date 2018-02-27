@@ -1,0 +1,5 @@
+#!/bin/bash
+git show | ./scripts/checkpatch.pl - && \
+make -j32 && make check -j12 && \
+make docker-test-build@min-glib DOCKER_CCACHE_DIR="/scratch/alistai/.cache/qemu-docker-ccache" J=12 && \
+make docker-test-mingw@fedora DOCKER_CCACHE_DIR="/scratch/alistai/.cache/qemu-docker-ccache" J=12

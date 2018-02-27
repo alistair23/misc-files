@@ -1,0 +1,167 @@
+#!/bin/bash
+#Make a patch series out of a feature branch. Clones the branch and moveschangelog to below to ---
+
+#How to use this script.
+#Make your feature branch - rebase on latest mainline etc. Name your branch foo.next.
+
+#the changelog is indicated by the ---CHANGELOG--- and ---END--- Markers
+#patches that are prefixed with HACK: in the subject line are removed from the series.
+#A patch with the prefix COVER: will have its changes discarded but the commit message will be used for the cover letter
+#Arguments
+#BRANCH_STEM the main part of the name a branch (before the .)
+#VERSION series version number eg N is [PATCH vN]
+#SUBJECT_PREFIX the patch subject prefix. eg FOO in [FOO v1]
+#BRANCH_SUFFIX the suffix at the end of the branch. The branch BRANCH_STEM.BRANCH_SUFFIX is whats turned into a series. Default to ".next"
+#INIT_COMMAND script to run before verifying patches (good for cleaning the tree if you are going to build test)
+#PER_PATCH_COMMAND script to run every patch. passed the patch as argument (good for running checkpatch and build test). If it fails, the whole series aborts.
+#CLASSIFICATION String that must match first line in CHANGELOG of every patch. If not PUBLIC, the send_email script generated will bit limited to a present list of Xilinx-only recipients and marked read only. (Every patch must be marked PUBLIC and the script must be called with CLASSIFICATION=PUBLIC to send patches outside)
+
+USAGE="git_make_series BRANCH_STEM VERSION BASELINE [SUBJECT_PREFIX] [BRANCH_SUFFIX] [INIT_COMMAND] [PER_PATCH_COMMAND] [CLASSIFICATION]"
+
+if [ $# -ge 3 ]; then
+    BRANCH_STEM=$1
+    VERSION=$2
+    BASELINE=$3
+    if [ $# -ge 4 ]; then
+        SUBJECT_PREFIX=$4
+    else
+        SUBJECT_PREFIX="PATCH"
+    fi;
+    if [ $# -ge 5 ]; then
+        BRANCH_SUFFIX=$5
+    else
+        BRANCH_SUFFIX="next"
+    fi;
+    if [ $# -ge 6 ]; then
+        INIT=$6
+    fi;
+    if [ $# -ge 7 ]; then
+        PER_PATCH=$7
+    fi;
+    if [ $# -ge 8 ]; then
+        EXP_CLASSIFICATION=$8
+    fi;
+else
+    echo "usage ${USAGE}"
+fi
+
+git checkout $BASELINE
+git checkout ${BRANCH_STEM}.${BRANCH_SUFFIX}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "argument branch ${BRANCH_STEM} has no ${BRANCH_SUFFIX} branch" && exit 255;
+git checkout -b ${BRANCH_STEM}.${VERSION}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "could not create ${BRANCH_STEM}.${VERSION} branch (already exists?)" && exit 255;
+if [ -d patchtemp ]; then
+    echo "aborting patchtemp directory exists";
+    exit 255;
+fi
+
+git clean -xdf && git submodule foreach git clean -xdf
+
+mkdir patchtemp;
+cd patchtemp;
+git format-patch --minimal -M40% ${BASELINE}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "format patch fail" && exit 255;
+cd ..;
+
+git checkout ${BASELINE}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "could not checkout baseline revision" && exit 255;
+git branch -D ${BRANCH_STEM}.${VERSION}
+git checkout -b ${BRANCH_STEM}.${VERSION}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "could not branch off baseline revision" && exit 255;
+
+if [ "${INIT}" != "" ]; then
+    ${INIT};
+    RETVAL=$?
+    [ $RETVAL -ne 0 ] && echo "Tree init failure: ${INIT}" && exit 255;
+fi
+
+for I in $(ls patchtemp); do
+    echo "Changelogging ${I}"
+    sed -n '/^---CHANGELOG---/,/^---END---$/p' patchtemp/${I} | sed '/^---END---$/d' | sed '/^---CHANGELOG---$/d' > patchtemp/${I}.$$.log
+    echo "" >> patchtemp/${I}.$$.log
+    CLASSIFICATION=$(head patchtemp/${I}.$$.log --lines=1);
+    if [ -n "${EXP_CLASSIFICATION}" ] && [ "${CLASSIFICATION}" != "${EXP_CLASSIFICATION}" ]; then
+        echo "Bad patch classification: ${CLASSIFICATION} exp: ${EXP_CLASSIFICATION}" && exit 255;
+    fi
+    sed '/^---CHANGELOG---$/,/^---END---$/d' -i patchtemp/${I}
+    sed "/^${CLASSIFICATION}$/d" -i patchtemp/${I}.$$.log
+    if [ "${BAIL}" == "y" ]; then
+        echo "Bailing on: $I"
+    elif [ $(echo $I | grep "[0-9]*-HACK") ]; then #thats a hack, dont email it
+        echo "Discarding hack: $I"
+    elif [ $(echo $I | grep "[0-9]*-BAIL") ]; then #thats the bail point
+        echo "Bailing on the rest of the series starting from: $I"
+        BAIL="y"
+    elif [ $(echo $I | grep "[0-9]*-COVER") ]; then #thats the cover letter
+        [ "${COVER_FOUND}" == "y" ] && echo "multiple cover letters found - invalid" && exit 255;
+        COVER_FOUND="y";
+        COVER_SUBJECT=$(grep -m 1 "Subject: \[.*\]" patchtemp/${I} | sed "s/Subject: \[.*\] COVER://")
+        COVER_BODY="patchtemp/${I}.$$.log"
+        COVER_ARG="--cover-letter"
+    else
+        git am patchtemp/${I}
+        RETVAL=$?
+        [ $RETVAL -ne 0 ] && echo "patch ${I} did not apply" && exit 255;
+        if [ "${PER_PATCH}" != "" ]; then
+            ${PER_PATCH}
+            RETVAL=$?
+            [ $RETVAL -ne 0 ] && echo "Patch test failure: ${PER_PATCH}" && exit 255;
+        fi
+    fi
+    rm patchtemp/${I};
+done;
+
+cd patchtemp;
+git format-patch --subject-prefix="${SUBJECT_PREFIX} v${VERSION}" -n --thread -M50% --minimal ${COVER_ARG} ${BASELINE}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "format patch fail" && exit 255;
+cd ..;
+
+for I in $(ls patchtemp | grep -v "$$.log"); do
+    echo "Inserting changelog into ${I}" 
+    sed -e "/^---$/r patchtemp/${I}.$$.log" -i patchtemp/${I}
+    rm patchtemp/${I}.$$.log
+done;
+
+if [ "${COVER_BODY}" != "" ]; then
+    sed -e "/^\*\*\* BLURB HERE \*\*\*$/r ${COVER_BODY}" -i patchtemp/0000-cover-letter.patch
+    sed "/^\*\*\* BLURB HERE \*\*\*$/d" -i patchtemp/0000-cover-letter.patch
+    sed "s/\*\*\* SUBJECT HERE \*\*\*/${COVER_SUBJECT}/" -i patchtemp/0000-cover-letter.patch
+fi
+
+rm patchtemp/*.$$.log
+
+touch patchtemp/send_email
+pushd patchtemp
+echo "for I in \$(ls 00*); do" >> send_email
+echo "git send-email --suppress-cc all --no-thread \\" >> send_email
+if [ "${EXP_CLASSIFICATION}" == "PUBLIC" ]; then
+    echo "--to qemu-devel@nongnu.org \\" >> send_email;
+    echo "--to peter.maydell@linaro.org \\" >> send_email;
+    echo "--cc alistair.francis@xilinx.com \\" >> send_email;
+    echo "--cc alistair23@gmail.com \\" >> send_email;
+    echo "--cc edgar.iglesias@xilinx.com \\" >> send_email;
+    echo "--cc edgar.iglesias@gmail.com \\" >> send_email;
+else
+    echo "--to qemu-dev@xilinx.com \\" >> send_email;
+    echo "--to saipava@xilinx.com \\" >> send_email;
+    echo "--to edgar.iglesias@xilinx.com \\" >> send_email;
+    echo "--cc alistair.francis@xilinx.com \\" >> send_email;
+fi
+echo "\$I; \\" >> send_email
+echo "sleep 2" >> send_email
+echo "done" >> send_email
+popd
+
+mkdir -p $(dirname ${BRANCH_STEM}.${VERSION})
+mv patchtemp ${BRANCH_STEM}.${VERSION}
+RETVAL=$?
+[ $RETVAL -ne 0 ] && echo "could not create output directory" && exit 255;
+
+echo "great success!"
+
