@@ -1,3 +1,7 @@
+[user]
+  name = Alistair Francis
+  email = alistair@alistair23.me
+  signingkey = C123ED93
 [color]
   ui = auto
 [color "branch"]
@@ -17,4 +21,6 @@
   editor = vim
 [push]
   default = current
+[gpg]
+  program = gpg2
 
