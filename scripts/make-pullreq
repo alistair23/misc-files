@@ -1,0 +1,155 @@
+#!/bin/sh -e
+
+# Make a pull request.
+
+# Copyright (C) 2013 Linaro Limited
+# Author: Peter Maydell <peter.maydell@linaro.org>
+# This work is licensed under the terms of the GNU GPL version 2 or later.
+
+# The assumption is that you're in a branch named "foo.next" and are
+# happy with its contents.  The script will do some basic sanity
+# checks of the patches on the branch.  It then creates and pushes to
+# your public-facing repo a foo.for-upstream branch (and possibly also
+# a signed tag), and creates a set of emails to be sent to
+# qemu-devel. Midway through you'll be dropped into an editor to
+# provide a suitable message for the signed tag (if you're using that),
+# which will go into the final upstream commit history.
+# You'll need to edit the cover letter email to include a
+# suitable explanation of the patch series (or just the "not for
+# the commit" log extras on top of the tag message).
+# Then you can send the emails with git send-email.
+
+### CONFIGURATION ###
+
+# You need a publicly visible repo somewhere: what is its GIT URL
+# for other people to access it?
+REMOTEURL=git@github.com:alistair23/qemu.git
+# What does your local git tree name that remote? (used for 'git push $REMOTE')
+REMOTE=alistairs
+# Where should we put the files which need to be emailed?
+# (we create a subdirectory for each new pull request)
+PATCHMAILDIR=~/qemu-pull-requests
+# What is your git signoff? We use this to check that each patch in the
+# request has been correctly signed off by you.
+SIGNOFF='Alistair Francis <alistair.francis@wdc.com>'
+# Use a GPG signed pull request?
+SIGNTAGS=yes
+# Drop into an editor to provide a proper useful tag message
+# summarising the contents of the pull request. If 'no', we
+# will create a tag message just saying "foo queue". Has no
+# effect unless SIGNTAGS is 'yes'.
+REALTAGMESSAGES=yes
+
+### end of configuration ###
+
+
+### Identify what branch we're on and where we're going to put the emails ###
+
+BRANCH="$(git symbolic-ref -q HEAD || true)"
+# NB that in the "detached head" case BRANCH will be the
+# empty string -- this will be caught by the "wrong branch name format"
+# check.
+BRANCH="${BRANCH##refs/heads/}"
+BRANCHPFX="${BRANCH%.next}"
+
+if [ "$BRANCH" = "$BRANCHPFX" ]; then
+    # Branch name not in right format
+    echo "Not on a foo.next branch"
+    exit 1
+fi
+
+echo "Creating pull request for $BRANCHPFX"
+
+PULLREQNAME="pull-$BRANCHPFX-$(date +%Y%m%d)"
+PULLDIR="$PATCHMAILDIR/$PULLREQNAME"
+
+if [ -e "${PULLDIR}" ]; then
+    # try some suffixes
+    for SUFFIX in 1 2 3 4 stop; do
+        if [ "$SUFFIX" = "stop" ]; then
+            # Almost certainly some sort of error
+            echo "Too many pull requests for today ???"
+            exit 1
+        fi
+        if [ ! -e "${PULLDIR}-${SUFFIX}" ]; then
+            PULLDIR="${PULLDIR}-${SUFFIX}"
+            break
+        fi
+    done
+fi
+
+### Sanity check the pull request ###
+
+if [ -n "$(git status -u no --porcelain)" ]; then
+    echo "git status says there are changes in your working tree"
+    exit 1
+fi
+
+echo "Updating master"
+git checkout master
+git pull
+git checkout "$BRANCH"
+
+if ! git rev-list HEAD | grep -q $(git rev-parse master) ; then
+    echo "master is not a parent commit of $BRANCH -- rebase!"
+    exit 1
+fi
+
+# Check all commits have our signoff
+bad=no
+for rev in $(git rev-list master..HEAD); do
+    if git log ${rev}^! | grep -q "Signed-off-by: $SIGNOFF"; then
+       continue
+    fi
+    echo "Error: commit ${rev} missing signoff"
+    bad=yes
+done
+if [ "$bad" = "yes" ]; then
+   exit 1
+fi
+
+### Actually create the pull request (including pushing branch/tag to remote) ###
+
+echo "Resetting $BRANCHPFX.for-upstream"
+# assumes the for-upstream branch already exists
+#git checkout "$BRANCHPFX.for-upstream"
+#git reset --hard "$BRANCH"
+# this should work even if the branch doesn't exist yet:
+git checkout -B "$BRANCHPFX.for-upstream" "$BRANCH"
+
+echo "Pushing to $REMOTE"
+git push --force "$REMOTE" master "$BRANCHPFX.next" "$BRANCHPFX.for-upstream"
+
+if [ "$SIGNTAGS" = "yes" ]; then
+    # If we're doing a GPG-signed pull request then make the signed tag and
+    # push it out to the repo. Strictly if we're doing this we need not push
+    # the for-upstream branch itself, but we leave that around for now
+    # (among other things it means the request-pull picks that for the URL
+    # it quotes).
+    # We can delete tags once they've been integrated upstream, but making
+    # them unique means we don't have to worry about doing so.
+    # NB we could put the queue contents summary into the tag message...
+    TAGNAME="$(basename "$PULLDIR")"
+    if [ "$REALTAGMESSAGES" = "yes" ]; then
+        git tag -s "$TAGNAME"
+    else
+        git tag -s -m "$BRANCHPFX queue" "$TAGNAME" 
+    fi
+    git push "$REMOTE" tag "$TAGNAME"
+    PULLTARGET="$TAGNAME"
+else
+    PULLTARGET="$BRANCHPFX.for-upstream"
+fi
+
+echo "Putting together pull-request emails"
+# Note use of --numbered so we don't get odd subjects for a single-patch pullreq
+git format-patch -o "$PULLDIR" master --subject-prefix=PULL --numbered --cover-letter
+COVERLETTER="$PULLDIR/0000-cover-letter.patch"
+# Edit the cover letter to remove the body and fix up the subject line,
+# then put the pull-request detail in
+sed -i -e 's/^Subject: \[PULL\(.*\)].*/Subject: [PULL\1] '"$BRANCHPFX"' queue/;/^$/q' "$COVERLETTER"
+git request-pull master "$REMOTEURL" "$PULLTARGET" >>"$COVERLETTER"
+
+echo "Mails are in $PULLDIR"
+echo "Edit cover letter, then use git send-email to send the patches."
+exit 0
