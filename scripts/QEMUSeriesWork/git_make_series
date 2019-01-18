@@ -140,19 +140,10 @@ touch patchtemp/send_email
 pushd patchtemp
 echo "for I in \$(ls 00*); do" >> send_email
 echo "git send-email --suppress-cc all --no-thread \\" >> send_email
-if [ "${EXP_CLASSIFICATION}" == "PUBLIC" ]; then
-    echo "--to qemu-devel@nongnu.org \\" >> send_email;
-    echo "--to peter.maydell@linaro.org \\" >> send_email;
-    echo "--cc alistair.francis@xilinx.com \\" >> send_email;
-    echo "--cc alistair23@gmail.com \\" >> send_email;
-    echo "--cc edgar.iglesias@xilinx.com \\" >> send_email;
-    echo "--cc edgar.iglesias@gmail.com \\" >> send_email;
-else
-    echo "--to qemu-dev@xilinx.com \\" >> send_email;
-    echo "--to saipava@xilinx.com \\" >> send_email;
-    echo "--to edgar.iglesias@xilinx.com \\" >> send_email;
-    echo "--cc alistair.francis@xilinx.com \\" >> send_email;
-fi
+echo "--to qemu-devel@nongnu.org \\" >> send_email;
+echo "--to qemu-riscv@nongnu.org \\" >> send_email;
+echo "--cc alistair.francis@wdc.com \\" >> send_email;
+echo "--cc alistair23@gmail.com \\" >> send_email;
 echo "\$I; \\" >> send_email
 echo "sleep 2" >> send_email
 echo "done" >> send_email
@@ -164,4 +155,3 @@ RETVAL=$?
 [ $RETVAL -ne 0 ] && echo "could not create output directory" && exit 255;
 
 echo "great success!"
-

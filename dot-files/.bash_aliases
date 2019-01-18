@@ -3,3 +3,7 @@ alias gc='git checkout'
 alias gs='git status'
 alias gr='git rebase'
 alias gl="git log --graph --pretty=format:'%C(yellow)%h%Creset%C(blue)%d%Creset %C(white bold)%s%Creset %C(white dim)(by %an %ar)%Creset'"
+
+alias bing="grep -rn"
+alias fbing="find -name"
+alias meta-fbing="find ../meta* -iname"

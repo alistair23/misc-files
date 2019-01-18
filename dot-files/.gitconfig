@@ -23,4 +23,8 @@
   default = current
 [gpg]
   program = gpg2
+[url "git://anongit.kde.org/"]
+ insteadOf = kde:
+[url "git@git.kde.org:"]
+ pushInsteadOf = kde:
 

@@ -51,3 +51,11 @@ PACKAGECONFIG_remove_pn-nativesdk-opkg-utils = "python"
 # Yocto Kernel Dev
 bitbake virtual/kernel -c compile -f
 
+
+# Zephyr QEMU
+cmake -DBOARD=qemu_riscv32 -DTOOLCHAIN_HOME=/usr/local/oecore-x86_64/sysroots/x86_64-oesdk-linux/usr/bin/riscv32-oe-linux/ -DLIBGCC_FILE_NAME=/usr/local/oecore-x86_64/sysroots/riscv32-oe-linux/usr/lib/riscv32-oe-linux/8.2.0/libgcc.a -DPYTHON_EXECUTABLE=/usr/bin/python3 ..
+make
+
+# Jenkins
+docker pull jenkins/jenkins
+docker run -p 8080:8080 -p 50000:50000 --dns 10.86.1.1 -v jenkins_home:/var/jenkins_home jenkins/jenkins

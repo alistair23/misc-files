@@ -106,3 +106,12 @@ fi
 export GITAWAREPROMPT=~/.bash/git-aware-prompt
 source "${GITAWAREPROMPT}/main.sh"
 
+eval $(thefuck --alias)
+
+export GPG_TTY=$(tty)
+
+# Remap 'Pause Break' to 'Insert'
+xmodmap -e "keycode 127 = Insert"
+
+# export DISPLAY=:0.0
+
