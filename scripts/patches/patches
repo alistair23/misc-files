@@ -1,0 +1,137 @@
+#!/usr/bin/python
+#
+# patches - QEMU Patch Tracking System
+#
+# Copyright IBM, Corp. 2013
+#
+# Authors:
+#  Anthony Liguori <aliguori@us.ibm.com>
+#
+# This work is licensed under the terms of the GNU GPLv2 or later.
+# See the COPYING file in the top-level directory.
+#
+
+from argparse import ArgumentParser
+from patchlib import config
+
+def do_scan(args):
+    from patchlib import scan
+    return scan.main(args)
+
+def do_notify(args):
+    from patchlib import notify
+    return notify.main(args)
+
+def do_list(args):
+    from patchlib import list
+    return list.main(args)
+
+def do_fetch(args):
+    from patchlib import fetch
+    return fetch.main(args)
+
+def do_apply(args):
+    from patchlib import apply
+    return apply.main(args)
+
+def do_init(args):
+    from patchlib import init
+    return init.main(args)
+
+def do_nntp_setup(args):
+    from patchlib import nntp
+    return nntp.setup(args)
+
+def do_nntp_refresh(args):
+    from patchlib import nntp
+    return nntp.refresh(args)
+
+def do_config_get(args):
+    from patchlib import config
+    return config.main(args)
+
+def do_build(args):
+    from patchlib import build
+    return build.main(args)
+
+def main(args):
+    import os.path
+
+    parser = ArgumentParser()
+    parser.add_argument('--config', type=str,
+                        help='Path to configuration file')
+
+    subparsers = parser.add_subparsers(title='Subcommands',
+                                       description='Valid subcommands',
+                                       help='Subcommand help')
+
+    subparser = subparsers.add_parser('init',
+                                      help='Create a new patches configuration in the current directory')
+    subparser.add_argument('url', type=str, nargs='*', help='URL of remote JSON file')
+    subparser.set_defaults(func=do_init)
+
+    subparser = subparsers.add_parser('scan',
+                                      help='Scan mailing list for patches')
+    subparser.set_defaults(func=do_scan)
+
+    subparser = subparsers.add_parser('notify',
+                                      help='Notify mailing list of patch status')
+    subparser.add_argument('--smtp-server', type=str, help='SMTP server to send mail from')
+    subparser.add_argument('--sender', type=str, help='Default sender of notifications')
+    subparser.add_argument('--dry-run', action='store_true', help='Do not take any real actions')
+    subparser.add_argument('--fake', action='store_true', help='Update the notification database but do not send mail')
+    subparser.add_argument('labels', type=str, nargs='*', help='Labels to notify')
+    subparser.set_defaults(func=do_notify)
+
+    subparser = subparsers.add_parser('list',
+                                      help='List pending patches')
+    subparser.add_argument('query', type=str, nargs='*', default=['label:__list__'], help='Search query')
+    subparser.add_argument('--format', type=str, default='full', help='Select output format (default "full")')
+    subparser.set_defaults(func=do_list)
+
+    subparser = subparsers.add_parser('fetch',
+                                      help='Fetch patch info from remote server')
+    subparser.add_argument('url', type=str, nargs='?', help='URL of remote JSON file')
+    subparser.set_defaults(func=do_fetch)
+
+    subparser = subparsers.add_parser('apply',
+                                      help='Apply a patch or pull request')
+    subparser.add_argument('--git-dir', type=str, help='Path to git working directory')
+    subparser.add_argument('-s', action='store_true', help='Add Signed-off-by when applying patches')
+    subparser.add_argument('--interactive', action='store_true', help='Run git-am in interactive mode')
+    subparser.add_argument('query', type=str, nargs='+', help='Query string for patches to apply')
+    subparser.set_defaults(func=do_apply)
+
+    subparser = subparsers.add_parser('nntp-setup',
+                                      help='Setup a new database using NNTP')
+    subparser.add_argument('--max-msgs', type=int, default=2000, help='Maximum number of historical messages to fetch')
+    subparser.add_argument('--list-tag', type=str, help='The list tag used by this mailing list')
+    subparser.add_argument('--search-days', type=int, default=30, help='Number of days of historical patches to consider')
+    subparser.add_argument('--master-branch', type=str, default='master', help='Git branch to examine for commits')
+    subparser.add_argument('url', type=str, help='Git URL to fetch')
+    subparser.add_argument('group', type=str, help='NNTP group name to fetch')
+    subparser.add_argument('server', type=str, default='news.gmane.org', nargs='?', help='Name of the NNTP server to use')
+    subparser.set_defaults(func=do_nntp_setup)
+
+    subparser = subparsers.add_parser('nntp-refresh',
+                                      help='Refresh a database using NNTP')
+    subparser.set_defaults(func=do_nntp_refresh)
+
+    subparser = subparsers.add_parser('config',
+                                      help='Get a configuration value')
+    subparser.add_argument('key', type=str, help='The key to retrieve')
+    subparser.set_defaults(func=do_config_get)
+
+    subparser = subparsers.add_parser('build',
+                                      help='Build one or more patch series')
+    subparser.add_argument('bots', type=str, nargs='*', 
+                           help='Build bots to run')
+    subparser.set_defaults(func=do_build)
+
+    args = parser.parse_args(args)
+    config.setup(args.config)
+    return args.func(args)
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main(sys.argv[1:]))
