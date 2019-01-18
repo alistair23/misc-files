@@ -1,0 +1,3 @@
+[fetch]
+# Default URL to use if 'patches fetch' is not given an argument:
+url=http://wiki.qemu.org/patches/patches.json
