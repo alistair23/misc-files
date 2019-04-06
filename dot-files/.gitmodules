@@ -1,0 +1,3 @@
+[submodule "dot-files/.bash/git-aware-prompt"]
+	path = dot-files/.bash/git-aware-prompt
+	url = git://github.com/jimeh/git-aware-prompt.git
