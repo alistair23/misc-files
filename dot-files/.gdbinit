@@ -1,5 +1,11 @@
 handle SIGUSR1 noprint
 
+define rdo_riscv
+        target extended-remote :1234
+        info threads
+end
+
+
 define rdo_arm
         target extended-remote :1234
         add-inferior
