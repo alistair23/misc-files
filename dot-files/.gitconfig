@@ -19,6 +19,8 @@
 	untracked = cyan
 [core]
 	editor = vim
+[am]
+	messageid = true
 [push]
 	default = current
 [gpg]
@@ -27,4 +29,8 @@
 	insteadOf = kde:
 [url "git@git.kde.org:"]
 	pushInsteadOf = kde:
-
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
