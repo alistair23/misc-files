@@ -142,6 +142,8 @@ echo "for I in \$(ls 00*); do" >> send_email
 echo "git send-email --suppress-cc all --no-thread \\" >> send_email
 echo "--to qemu-devel@nongnu.org \\" >> send_email;
 echo "--to qemu-riscv@nongnu.org \\" >> send_email;
+echo "--cc bmeng.cn@gmail.com \\" >> send_email;
+echo "--cc palmer@dabbelt.com \\" >> send_email;
 echo "--cc alistair.francis@wdc.com \\" >> send_email;
 echo "--cc alistair23@gmail.com \\" >> send_email;
 echo "\$I; \\" >> send_email

@@ -10,11 +10,14 @@
 # See the COPYING file in the top-level directory.
 #
 
-from ConfigParser import RawConfigParser
-import os.path, email.utils, os
+from collections.abc import Iterable
+from configparser import RawConfigParser
+import email.utils
+import os
 
 ini = RawConfigParser()
 config_filename = None
+
 
 def setup(filename):
     global config_filename
@@ -41,17 +44,20 @@ def setup(filename):
     config_filename = filename
     ini.read(filename)
 
+
 def parse_list(value):
-    if value == None:
+    if value is None:
         return []
     elif value.find(';') == -1:
         return [value]
     return value.split(';')
 
+
 def option(key):
     def getter():
         return get(key)
     return getter
+
 
 def get_trees():
     trees = {}
@@ -59,8 +65,10 @@ def get_trees():
         trees[branch] = uri
     return trees
 
+
 def get_hook(name):
     return get('hooks.%s' % name)
+
 
 def get_buildbot(name):
     steps = parse_list(ini.get('buildbot "%s"' % name, 'steps'))
@@ -70,11 +78,13 @@ def get_buildbot(name):
         ret.append((step, cmd))
     return ret
 
+
 def get_buildbot_json(name):
     ret = get('buildbot "%s".json' % name)
     if not ret:
         ret = get_patches_dir() + '/buildbot-%s.json' % name
     return ret
+
 
 def get_buildbot_owner(name):
     ret = get('buildbot "%s".owner' % name)
@@ -82,8 +92,10 @@ def get_buildbot_owner(name):
         ret = get_default_sender()
     return ret
 
+
 def get_buildbot_query(name):
     return get('buildbot "%s".query' % name)
+
 
 def get_links():
     ret = {}
@@ -92,17 +104,21 @@ def get_links():
             ret[item] = value
     return ret
 
+
 def get_label(label):
     return get('labels.%s' % label)
 
+
 def get_notification(label):
     return ini.get('notifications', label)
+
 
 def get_notifications():
     ret = []
     for item, value in ini.items('notifications'):
         ret.append((item, value))
     return ret
+
 
 def get(key):
     if key.find('.') == -1:
@@ -155,10 +171,12 @@ def get(key):
 
     return value
 
+
 def set(section, item, value):
     if not ini.has_section(section):
         ini.add_section(section)
     ini.set(section, item, value)
+
 
 get_list_tag = option('scan.list_tag')
 get_git_dir = option('scan.git_dir')
@@ -183,12 +201,14 @@ get_nntp_server = option('nntp.server')
 get_nntp_group = option('nntp.group')
 get_buildbots = option('buildbots.bots')
 
+
 def main(args):
     value = get(args.key)
-    if value == None:
+    if value is None:
         return 1
-    elif type(value) == list:
-        print ';'.join(value)
+
+    if isinstance(value, Iterable):
+        print(';'.join(value))
     elif value:
-        print value
+        print(value)
     return 0

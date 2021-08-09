@@ -10,31 +10,38 @@
 # See the COPYING file in the top-level directory.
 #
 
-import config
-from commands import getstatusoutput
-from subprocess import check_output
+from collections.abc import Sequence
+from subprocess import (
+    getstatusoutput,
+    check_output
+)
+
+from patchlib import config
+
 
 def git(*args, **kwds):
     if 'git_dir' not in kwds:
         git_dir = config.get_git_dir()
     else:
         git_dir = kwds['git_dir']
-    
-    if git_dir == None:
+
+    if git_dir is None:
         git_dir = ''
     else:
         git_dir = ' --git-dir="%s"' % git_dir
 
-    s, o = getstatusoutput('git%s %s' % (git_dir, ' '.join(map(lambda x: '"%s"' % x, args))))
+    s, o = getstatusoutput('git%s %s' % (git_dir, ' '.join(['"%s"' % x for x in args])))
     if s != 0:
         raise Exception(o)
     return o
+
 
 def get_sha1(refspec):
     s, o = getstatusoutput('git --git-dir="%s" log -n 1 --format="%%H" %s' % (config.get_git_dir(), refspec))
     if s != 0:
         raise Exception(o)
     return o
+
 
 def get_remotes(cwd=None, **kwds):
     o = check_output(['git', 'remote', 'show'], cwd=cwd)
@@ -50,6 +57,7 @@ def get_remotes(cwd=None, **kwds):
 
     return remotes
 
+
 def get_merges(since):
     refspec = config.get_master_branch()
     o = git('log', '--merges', '--first-parent',
@@ -64,16 +72,20 @@ def get_merges(since):
         commit = lines[i]
         heads = lines[i + 1].split()
         for head in heads:
-            merged_heads[head] = { 'commit': commit,
-                                   'committer': { 'name': lines[i + 2],
-                                                  'email': lines[i + 3] } }
+            merged_heads[head] = {
+                'commit': commit,
+                'committer': {
+                    'name': lines[i + 2],
+                    'email': lines[i + 3]
+                }
+            }
 
     return merged_heads
+
 
 def get_commits(since, trees):
     mapping = {}
 
-    git_dir = config.get_git_dir()
     master_branch = config.get_master_branch()
 
     for branch in trees:
@@ -89,21 +101,20 @@ def get_commits(since, trees):
             if (i + 3) >= len(lines):
                 continue
 
-            pairs.append({ 'hexsha': lines[i],
-                           'summary': lines[i + 1],
-                           'branch': branch,
-                           'committer': { 'name': lines[i + 2],
-                                          'email': lines[i + 3] } })
+            pairs.append({'hexsha': lines[i],
+                          'summary': lines[i + 1],
+                          'branch': branch,
+                          'committer': {'name': lines[i + 2],
+                                        'email': lines[i + 3]}})
 
         for commit in pairs:
             s = commit['summary']
-            if mapping.has_key(s):
+            if s in mapping:
                 hsh = mapping[s]
-                if type(hsh) != list:
+                if not isinstance(hsh, Sequence):
                     mapping[s] = [commit]
                 mapping[s].append(commit)
             else:
                 mapping[s] = commit
 
     return mapping
-

@@ -58,4 +58,5 @@ make
 
 # Jenkins
 docker pull jenkins/jenkins
-docker run -p 8080:8080 -p 50000:50000 --dns 10.86.1.1 -v jenkins_home:/var/jenkins_home jenkins/jenkins
+docker run -p 8080:8080 -p 50000:50000 -e JAVA_OPTS=-Duser.timezone=America/Los_Angeles --dns 10.86.1.1 -v jenkins_home:/var/jenkins_home -d jenkins/jenkins
+

@@ -10,15 +10,24 @@
 # See the COPYING file in the top-level directory.
 #
 
-import shutil, os, mailbox, hashlib
-import config
-from message import get_payload, merge_tags, parse_tag, escape_message_id
+import hashlib
+import mailbox
+import os
+
+from patchlib import (
+    config,
+)
+from patchlib.message import (
+    get_payload, merge_tags, parse_tag, escape_message_id
+)
+
 
 def setup_mboxes():
     try:
         os.makedirs(config.get_mbox_path())
-    except Exception, e:
+    except:
         pass
+
 
 def add_tags(message, tags):
     lines = []
@@ -45,7 +54,7 @@ def add_tags(message, tags):
                 continue
 
             if tag:
-                key = tag.keys()[0]
+                key = list(tag.keys())[0]
                 value = tag[key]
 
                 # always drop message-id tags
@@ -84,8 +93,8 @@ def add_tags(message, tags):
         else:
             lines.append(line)
 
-
     return '\n'.join(lines)
+
 
 def generate_mbox(messages, full_tags):
     mbox_dir = config.get_mbox_path()
@@ -117,8 +126,10 @@ def generate_mbox(messages, full_tags):
 
     return config.get_mbox_prefix() + ('mbox-%s' % mid)
 
+
 def get_real_path(mbox_path):
     return '%s/%s' % (config.get_mbox_path(), mbox_path[len(config.get_mbox_prefix()):])
+
 
 def get_hash(mbox_path):
     real_path = get_real_path(mbox_path)
@@ -136,5 +147,5 @@ def get_hash(mbox_path):
     data = '\n'.join(filter(fn, data.split('\n')))
 
     h = hashlib.sha1()
-    h.update(data)
+    h.update(data.encode('utf-8'))
     return h.hexdigest()

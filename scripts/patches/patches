@@ -23,8 +23,8 @@ def do_notify(args):
     return notify.main(args)
 
 def do_list(args):
-    from patchlib import list
-    return list.main(args)
+    from patchlib import list as patch_list
+    return patch_list.main(args)
 
 def do_fetch(args):
     from patchlib import fetch
@@ -47,7 +47,7 @@ def do_nntp_refresh(args):
     return nntp.refresh(args)
 
 def do_config_get(args):
-    from patchlib import config
+    # Config already imported at global scope
     return config.main(args)
 
 def do_build(args):
@@ -55,8 +55,6 @@ def do_build(args):
     return build.main(args)
 
 def main(args):
-    import os.path
-
     parser = ArgumentParser()
     parser.add_argument('--config', type=str,
                         help='Path to configuration file')
@@ -124,13 +122,17 @@ def main(args):
 
     subparser = subparsers.add_parser('build',
                                       help='Build one or more patch series')
-    subparser.add_argument('bots', type=str, nargs='*', 
+    subparser.add_argument('bots', type=str, nargs='*',
                            help='Build bots to run')
     subparser.set_defaults(func=do_build)
 
     args = parser.parse_args(args)
     config.setup(args.config)
-    return args.func(args)
+    try:
+        func = args.func
+    except AttributeError:
+        parser.error("too few arguments")
+    return func(args)
 
 if __name__ == '__main__':
     import sys

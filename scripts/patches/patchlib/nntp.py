@@ -10,15 +10,27 @@
 # See the COPYING file in the top-level directory.
 #
 
-import nntplib, email, datetime, notmuch, mailbox, os
-from ConfigParser import RawConfigParser
-import config, util, sys
+from configparser import RawConfigParser
+import email
+import mailbox
+import nntplib
+import os
 from subprocess import check_call
+import sys
+
+import notmuch
+
+from patchlib import (
+    config,
+    util
+)
+
 
 def fetch_msg(self, num):
     _, _, _, head = self.head(str(num))
     _, _, _, body = self.body(str(num))
     return email.message_from_string('\n'.join(head + body))
+
 
 def setup(args):
     maildir = config.get_notmuch_dir()
@@ -26,7 +38,7 @@ def setup(args):
 
     try:
         os.makedirs(git_dir.rsplit('/', 1)[0])
-    except Exception, e:
+    except:
         pass
 
     git = ['git', '--git-dir=%s' % git_dir]
@@ -36,11 +48,11 @@ def setup(args):
 
     try:
         os.makedirs(maildir.rsplit('/', 1)[0])
-    except Exception, e:
+    except:
         pass
 
-    mdir = mailbox.Maildir(maildir, create=True)
-    db = notmuch.Database(maildir, create=True)
+    _ = notmuch.Database(maildir, create=True)
+    _ = mailbox.Maildir(maildir, create=True)
 
     srv = nntplib.NNTP(args.server)
     _, _, first, last, _ = srv.group(args.group)
@@ -64,7 +76,8 @@ def setup(args):
 
     return 0
 
-def refresh(args):
+
+def refresh(_args):
     maildir = config.get_notmuch_dir()
 
     with open('%s/.last' % maildir, 'r') as fp:
@@ -74,7 +87,7 @@ def refresh(args):
     db = notmuch.Database(maildir, mode=notmuch.Database.MODE.READ_WRITE)
 
     srv = nntplib.NNTP(config.get_nntp_server())
-    _, _, first, last, _ = srv.group(config.get_nntp_group())
+    _, _, _first, last, _ = srv.group(config.get_nntp_group())
 
     last = int(last)
 
@@ -85,7 +98,7 @@ def refresh(args):
 
         db.begin_atomic()
         try:
-            msg, status = db.add_message(filename)
+            _msg, _status = db.add_message(filename)
         finally:
             db.end_atomic()
 
@@ -99,4 +112,3 @@ def refresh(args):
         sys.stdout.write('\n')
 
     return 0
-    

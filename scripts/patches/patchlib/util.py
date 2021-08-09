@@ -10,16 +10,20 @@
 # See the COPYING file in the top-level directory.
 #
 
+import os
 from subprocess import Popen, PIPE, STDOUT
-import os, sys
+import sys
+
 
 def call_teed_output(args, **kwds):
-    p = Popen(args, stdout=PIPE, stderr=STDOUT, **kwds)
-    out = ''
-    for line in iter(p.stdout.readline, ''):
+    p = Popen(args, stdout=PIPE, stderr=STDOUT,
+              universal_newlines=True, **kwds)
+    output = []
+    for line in p.stdout:
         sys.stdout.write(line)
-        out += line
-    return p.wait(), out
+        output.append(line)
+    return p.wait(), "".join(output)
+
 
 def backup_file(filename):
     backup = "%s~" % filename
@@ -34,10 +38,11 @@ def backup_file(filename):
         with open(filename, 'r') as infp:
             with open(backup, 'w') as outfp:
                 outfp.write(infp.read())
-    except Exception, e:
+    except:
         pass
 
     return tmp_filename
+
 
 def replace_cfg(filename, ini):
     tmp_filename = backup_file(filename)
@@ -46,6 +51,7 @@ def replace_cfg(filename, ini):
         ini.write(fp)
 
     os.rename(tmp_filename, filename)
+
 
 def replace_file(filename, data):
     tmp_filename = backup_file(filename)

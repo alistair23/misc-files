@@ -1,0 +1,17 @@
+[MASTER]
+# Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
+# number of processors available to use.
+jobs=0
+
+[MESSAGES CONTROL]
+disable=bare-except,
+        invalid-name,
+        line-too-long,
+        no-else-return,
+        missing-docstring,
+        too-many-locals,
+        too-many-branches,
+        too-many-ancestors,
+        too-many-statements,
+        too-many-nested-blocks,
+        too-many-return-statements

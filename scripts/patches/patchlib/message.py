@@ -10,46 +10,53 @@
 # See the COPYING file in the top-level directory.
 #
 
-import config
 from email.header import decode_header
 from email.utils import parseaddr
 
+from patchlib import config
+
+
 def escape_message_id(mid):
-    '''Escape a Message-ID so it is safe for filenames'''
+    """Escape a Message-ID so it is safe for filenames"""
     return mid.replace('%', '%%').replace('/', '%2F')
+
 
 def parse_email_address(value):
     name, mail = parseaddr(value)
-    return { 'name': name, 'email': mail }
+    return {'name': name, 'email': mail}
+
 
 def parse_email_addresses(value):
     if value:
         if value.find(', ') == -1:
-            return [ parse_email_address(value) ]
+            return [parse_email_address(value)]
         else:
-            return map(parse_email_address, value.split(', '))
+            return list(map(parse_email_address, value.split(', ')))
     return []
 
+
 def get_header(msg, name):
-    value = u''
+    value = ''
 
     # notmuch's Message.get_header() doesn't handle chunked encoded headers
     # correctly so we fix it here.
     header = msg.get_header(name)
     if header.find('=?') != -1:
         for chunk, encoding in decode_header(header):
-            value += unicode(chunk, encoding or 'ascii')
+            value += str(chunk, encoding or 'ascii')
     else:
-        value = unicode(header)
+        value = str(header)
 
     return value
 
+
 def get_subject(msg):
-    list_tag = u'[%s] ' % config.get_list_tag();
+    list_tag = '[%s] ' % config.get_list_tag()
     subject = get_header(msg, 'Subject')
     if subject.startswith(list_tag):
         subject = subject[len(list_tag):].strip()
     return subject
+
 
 def find_and_split(haystack, needle):
     index = haystack.find(needle)
@@ -58,28 +65,32 @@ def find_and_split(haystack, needle):
     else:
         return haystack[0:index], haystack[index + len(needle):]
 
+
 def is_digit(ch):
     return ch in '0123456789'
+
 
 def parse_subject(msg):
     ret = decode_subject(msg)
     return ret['n'], ret['m'], ret['version'], ret['subject']
 
+
 def decode_subject(msg):
     subject = get_header(msg, 'Subject')
     return decode_subject_text(subject)
 
+
 def decode_subject_text(subject):
-    ret = { 'n': 1, 'm': 1, 'version': 1, 
-            'patch': False, 'rfc': False }
+    ret = {'n': 1, 'm': 1, 'version': 1,
+           'patch': False, 'rfc': False}
     patch_tags = []
 
-    while len(subject) and subject[0] == '[':
+    while subject and subject[0] == '[':
         bracket, subject = find_and_split(subject[1:], ']')
         subject = subject.lstrip()
 
         if bracket:
-            words = map(unicode.upper, bracket.split(' '))
+            words = list(map(str.upper, bracket.split(' ')))
 
             for word in words:
                 if not word:
@@ -94,13 +105,13 @@ def decode_subject_text(subject):
                 index = word.find('/')
                 if index != -1 and is_digit(word[0]) and is_digit(word[index + 1]):
                     try:
-                        ret['n'], ret['m'] = map(int, word.split('/', 1))
+                        ret['n'], ret['m'] = list(map(int, word.split('/', 1)))
                     except ValueError:
                         pass
                 elif word[0] == 'V' and is_digit(word[1]):
                     try:
                         ret['version'] = int(word[1:])
-                    except Exception, e:
+                    except:
                         pass
                 elif word.startswith('FOR-') and is_digit(word[4]):
                     ret['for-release'] = word[4:]
@@ -125,26 +136,24 @@ def decode_subject_text(subject):
 
     return ret
 
-def is_capital(ch):
-    return ch >= 'A' and ch <= 'Z'
-
-def is_lower(ch):
-    return ch >= 'a' and ch <= 'z'
 
 def format_tag_name(key):
     return key[0].upper() + key[1:].lower()
 
-def parse_tag(line, extra_tags=[]):
+
+def parse_tag(line, extra_tags=None):
     if not line:
         return None
+    if extra_tags is None:
+        extra_tags = []
 
     i = 0
-    if not is_capital(line[i]):
+    if not line[i].isupper():
         return None
 
     i += 1
-    while i < len(line) and (is_capital(line[i]) or
-                             is_lower(line[i]) or
+    while i < len(line) and (line[i].isupper() or
+                             line[i].islower() or
                              line[i] == '-'):
         i += 1
 
@@ -157,7 +166,8 @@ def parse_tag(line, extra_tags=[]):
     if key not in (config.get_email_tags() + extra_tags) or not value:
         return None
 
-    return { key: [value] }
+    return {key: [value]}
+
 
 def merge_tags(lhs, rhs):
     val = {}
@@ -176,12 +186,14 @@ def merge_tags(lhs, rhs):
                 val[key].append(tag)
 
     return val
-    
+
+
 def isin(needle, lst):
     for item in lst:
         if needle['name'] == item['name'] and needle['email'] == item['email']:
             return True
     return False
+
 
 def dedup(lst):
     new_lst = []
@@ -189,6 +201,7 @@ def dedup(lst):
         if not isin(item, new_lst):
             new_lst.append(item)
     return new_lst
+
 
 def get_payload(msg):
     parts = msg.get_message_parts()
@@ -198,6 +211,7 @@ def get_payload(msg):
     except:
         # Emails with bogus charset names have been known to exist
         return parts[0].get_payload(decode=True).decode('latin1')
+
 
 def find_extra_tags(msg, leader):
     extra_tags = {}
@@ -222,6 +236,7 @@ def find_extra_tags(msg, leader):
 
     return extra_tags, dedup(to_addrs), dedup(cc_addrs)
 
+
 def is_thanks_applied(msg):
     for line in get_payload(msg).split('\n'):
         for pattern in ('Thanks, applied',
@@ -231,18 +246,11 @@ def is_thanks_applied(msg):
                 return True
     return False
 
-def cmp_patch(a, b):
-    a_n = parse_subject(a[0])[0]
-    b_n = parse_subject(b[0])[0]
-
-    return cmp(a_n, b_n)
 
 def is_cover(msg):
-    if msg.has_key('cover') and msg['cover']:
-        return True
-    return False
+    return msg.get('cover')
+
 
 def is_patch(msg):
     ret = decode_subject(msg)
     return ret['patch']
-    

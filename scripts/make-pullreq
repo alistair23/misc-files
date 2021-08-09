@@ -78,6 +78,8 @@ if [ -e "${PULLDIR}" ]; then
     done
 fi
 
+mkdir -p $PULLDIR
+
 ### Sanity check the pull request ###
 
 if [ -n "$(git status -u no --porcelain)" ]; then
@@ -143,7 +145,7 @@ fi
 
 echo "Putting together pull-request emails"
 # Note use of --numbered so we don't get odd subjects for a single-patch pullreq
-git format-patch -o "$PULLDIR" master --subject-prefix=PULL --numbered --cover-letter
+git format-patch -o "$PULLDIR" master --subject-prefix=PULL --no-binary --numbered --cover-letter
 COVERLETTER="$PULLDIR/0000-cover-letter.patch"
 # Edit the cover letter to remove the body and fix up the subject line,
 # then put the pull-request detail in

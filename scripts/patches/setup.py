@@ -1,10 +1,13 @@
-from distutils.core import setup
-setup(name='patches',
-      version='0.1',
-      py_modules=['patchlib.apply', 'patchlib.build', 'patchlib.config',
-                  'patchlib.data', 'patchlib.fetch', 'patchlib.gitcmd',
-                  'patchlib.hooks', 'patchlib.mbox', 'patchlib.message',
-                  'patchlib.notify', 'patchlib.query', 'patchlib.scan',
-                  'patchlib.series', 'patchlib.util', 'patchlib.init',
-                  'patchlib.list', 'patchlib.nntp'],
-      scripts=['patches'])
+import setuptools
+
+def main():
+    kwargs = {
+        'name': 'patches',
+        'version': '0.3',
+        'packages': setuptools.find_packages(),
+        'scripts': ['patches'],
+    }
+    setuptools.setup(**kwargs)
+
+if __name__ == '__main__':
+    main()

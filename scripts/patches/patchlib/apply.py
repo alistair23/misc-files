@@ -10,15 +10,23 @@
 # See the COPYING file in the top-level directory.
 #
 
-import config, mbox, gitcmd, data
-from list import find_subseries
-from series import *
-from subprocess import call, check_output
-from util import call_teed_output
-import os
+from subprocess import check_output
+import traceback
+
+from patchlib import (
+    config,
+    data,
+    gitcmd,
+    mbox,
+)
+
+from patchlib.list import find_subseries
+from patchlib.util import call_teed_output
+from patchlib.series import is_pull_request, is_broken
+
 
 def apply_patch(pathname, **kwds):
-    opts = [ '--3way' ]
+    opts = ['--3way']
     if 'signed-off-by' in kwds:
         opts.append('-s')
         del kwds['signed-off-by']
@@ -27,6 +35,7 @@ def apply_patch(pathname, **kwds):
         del kwds['interactive']
     opts.append(pathname)
     return call_teed_output(['git', 'am'] + opts, **kwds)
+
 
 def apply_pull_request(msg, **kwds):
     pull_request = msg['pull-request']
@@ -69,14 +78,16 @@ def apply_pull_request(msg, **kwds):
 
     return call_teed_output(['git', 'commit', '--amend', '-m', o], **kwds)
 
+
 def apply_series(series, **kwds):
-   if is_pull_request(series):
-       return apply_pull_request(series['messages'][0], **kwds)
-   elif is_broken(series):
-       raise Exception('Cannot apply series: series is either incomplete or improperly threaded.')
-   elif not 'mbox_path' in series:
-       raise Exception('Cannot apply series: missing mbox')
-   return apply_patch(mbox.get_real_path(series['mbox_path']), **kwds)
+    if is_pull_request(series):
+        return apply_pull_request(series['messages'][0], **kwds)
+    elif is_broken(series):
+        raise Exception('Cannot apply series: series is either incomplete or improperly threaded.')
+    elif 'mbox_path' not in series:
+        raise Exception('Cannot apply series: missing mbox')
+    return apply_patch(mbox.get_real_path(series['mbox_path']), **kwds)
+
 
 def main(args):
     with open(config.get_json_path(), 'rb') as fp:
@@ -95,9 +106,8 @@ def main(args):
             s, _ = apply_series(series, **kwds)
             if s:
                 return s
-        except Exception, e:
-            print str(e)
+        except:
+            traceback.print_exc()
             return 1
 
     return 0
-            

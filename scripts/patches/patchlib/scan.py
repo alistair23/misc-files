@@ -10,25 +10,36 @@
 # See the COPYING file in the top-level directory.
 #
 
-import notmuch, json, datetime, config
-import gitcmd, message, mbox
-import series as series_
+from collections.abc import Sequence
+import datetime
+import json
 from time import time
-from ConfigParser import RawConfigParser
-from email.header import decode_header
-from util import *
-import os
+
+import notmuch
+
+from patchlib import (
+    config,
+    gitcmd,
+    message,
+    mbox,
+)
+from patchlib import series as series_
+from util import replace_file
+
 
 def days_to_seconds(value):
     return value * 24 * 60 * 60
+
 
 def unique(lst):
     return list(set(lst))
 
 ##################################
 
+
 thread_leaders = {}
 full_thread_leaders = {}
+
 
 def build_thread_leaders(q, then):
     global thread_leaders, full_thread_leaders
@@ -45,23 +56,17 @@ def build_thread_leaders(q, then):
         if not message.is_patch(top):
             continue
 
-        n, m, version, stripped_subject = message.parse_subject(top)
+        _n, _m, version, stripped_subject = message.parse_subject(top)
         if stripped_subject not in full_thread_leaders:
             val = []
         else:
             val = full_thread_leaders[stripped_subject]
         val.append((top.get_date(), version))
-
-        def fn(lhs, rhs):
-            ret = cmp(lhs[0], rhs[0])
-            if ret == 0:
-                ret = cmp(lhs[1], rhs[1])
-            return ret
-        val.sort(fn)
+        val.sort(key=lambda val: (val[0], val[1]))
 
         full_thread_leaders[stripped_subject] = val
 
-        if thread_leaders.has_key(stripped_subject):
+        if stripped_subject in thread_leaders:
             new_version = max(version, thread_leaders[stripped_subject])
             thread_leaders[stripped_subject] = new_version
         else:
@@ -69,16 +74,18 @@ def build_thread_leaders(q, then):
 
     return oldest
 
+
 def is_leader_obsolete(subject, version, date):
     val = full_thread_leaders[subject]
     for i in range(len(val) - 1):
         d, v = val[i]
         if date == d and v == version:
-            next_d, next_v = val[i + 1]
+            _next_d, next_v = val[i + 1]
             if next_v > version:
                 return True
             break
     return False
+
 
 def build_patch(commits, merged_heads, msg, trees, leader=False):
     patch = {}
@@ -86,7 +93,7 @@ def build_patch(commits, merged_heads, msg, trees, leader=False):
     sub = message.decode_subject(msg)
     stripped_subject = sub['subject']
 
-    if sub.has_key('pull-request') and sub['pull-request']:
+    if sub.get('pull-request'):
         parts = msg.get_message_parts()
         patch['pull-request'] = {}
 
@@ -102,7 +109,7 @@ def build_patch(commits, merged_heads, msg, trees, leader=False):
                 try:
                     uri, refspec = stripped_line.split(' ', 1)
                 except ValueError:
-                    continue # not a pull refspec
+                    continue  # not a pull refspec
 
                 patch['pull-request']['uri'] = uri
                 patch['pull-request']['refspec'] = refspec
@@ -123,11 +130,11 @@ def build_patch(commits, merged_heads, msg, trees, leader=False):
         # obsolete.  We only look at the thread leader which is either the
         # cover letter or the very first patch.
         patch['obsolete'] = True
-    elif commits.has_key(stripped_subject):
+    elif stripped_subject in commits:
         # If there are multiple commits that have this subject, just pick
         # the first one.
         c = commits[stripped_subject]
-        if type(c) == list:
+        if isinstance(c, Sequence):
             c = c[0]
 
         patch['commit'] = c['hexsha']
@@ -140,9 +147,9 @@ def build_patch(commits, merged_heads, msg, trees, leader=False):
     patch['message-id'] = msg.get_message_id()
     if sub['rfc']:
         patch['rfc'] = sub['rfc']
-    if sub.has_key('for-release'):
+    if 'for-release' in sub:
         patch['for-release'] = sub['for-release']
-    if sub.has_key('tags'):
+    if 'tags' in sub:
         patch['subject-tags'] = sub['tags']
 
     patch['from'] = message.parse_email_address(message.get_header(msg, 'From'))
@@ -153,6 +160,7 @@ def build_patch(commits, merged_heads, msg, trees, leader=False):
 
     return patch
 
+
 def fixup_pull_request(series, merged_heads):
     if 'head' in series['messages'][0]['pull-request']:
         return series
@@ -162,17 +170,17 @@ def fixup_pull_request(series, merged_heads):
 
     first_real_patch = series['messages'][-1]
     if ('commit' in first_real_patch and
-        first_real_patch['commit'] in merged_heads):
+            first_real_patch['commit'] in merged_heads):
         series['messages'][0]['pull-request']['commit'] = merged_heads[first_real_patch['commit']]
 
     return series
-            
+
 
 def build_patches(notmuch_dir, search_days, mail_query, trees):
 
     db = notmuch.Database(notmuch_dir)
 
-    now = long(time())
+    now = int(time())
     then = now - days_to_seconds(search_days)
 
     query = '%s (subject:PATCH or subject:PULL) %s..%s' % (mail_query, then, now)
@@ -215,7 +223,7 @@ def build_patches(notmuch_dir, search_days, mail_query, trees):
             traceback.print_exc()
             continue
 
-        patch_list = [ patch ]
+        patch_list = [patch]
         message_list = []
 
         for reply in top.get_replies():
@@ -239,22 +247,24 @@ def build_patches(notmuch_dir, search_days, mail_query, trees):
         # now we're done with replies so tags for the top patch are known
         if not message.is_cover(patch_list[0]):
             message_list.insert(0, (top, patch_list[0]['tags']))
-    
-        series = { 'messages': patch_list,
-                   'total_messages': thread.get_total_messages() }
+
+        series = {'messages': patch_list,
+                  'total_messages': thread.get_total_messages()}
 
         if series_.is_pull_request(series):
             series = fixup_pull_request(series, merged_heads)
-    
-        message_list.sort(message.cmp_patch)
+
+        message_list.sort(
+            key=lambda m: message.parse_subject(m[0])[0]
+        )
 
         m = message.parse_subject(top)[1]
         if len(message_list) != m:
             series['broken'] = True
 
         if (not series_.is_broken(series) and not series_.is_obsolete(series) and
-            not series_.any_committed(series) and not series_.is_pull_request(series) and
-            not series_.is_applied(series)):
+                not series_.any_committed(series) and not series_.is_pull_request(series) and
+                not series_.is_applied(series)):
             if message.is_cover(series['messages'][0]):
                 tags = series['messages'][0]['tags']
             else:
@@ -267,8 +277,8 @@ def build_patches(notmuch_dir, search_days, mail_query, trees):
 
     return patches
 
-def main(args):
-    import json, config
+
+def main(_args):
     import data
     import hooks
 
@@ -278,16 +288,13 @@ def main(args):
     search_days = config.get_search_days()
     trees = config.get_trees()
 
-    def sort_patch(a, b):
-        return cmp(b['messages'][0]['full_date'], a['messages'][0]['full_date'])
-
     patches = build_patches(notmuch_dir, search_days, mail_query, trees)
-    patches.sort(sort_patch)
+    patches.sort(key=lambda p: p['messages'][0]['full_date'])
 
     links = config.get_links()
 
-    info = { 'version': data.VERSION,
-             'patches': patches }
+    info = {'version': data.VERSION,
+            'patches': patches}
 
     if links:
         info['links'] = links
