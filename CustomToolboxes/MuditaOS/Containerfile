@@ -1,0 +1,9 @@
+FROM registry.fedoraproject.org/fedora-toolbox
+
+RUN dnf -y install make vim gcc g++
+RUN dnf -y install doxygen cmake mtools
+RUN dnf -y install fuse-devel libasan libasan-static gtkmm30-devel portaudio-devel
+
+RUN dnf clean all
+
+CMD /bin/sh

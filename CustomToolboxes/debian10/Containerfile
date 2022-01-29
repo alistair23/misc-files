@@ -1,0 +1,22 @@
+FROM docker.io/library/debian:10
+
+ENV NAME=debian10-toolbox VERSION=1
+LABEL com.github.containers.toolbox="true" \
+      com.github.debarshiray.toolbox="true" \
+      name="$NAME" \
+      version="$VERSION" \
+      usage="This image is meant to be used with the toolbox command" \
+      summary="Base image for creating Debian 10 development toolbox containers" \
+      maintainer="Alistair Francis <alistair@alistair23.me>"
+
+RUN apt-get update
+
+COPY extra-packages /
+RUN apt -y install $(cat extra-packages)
+RUN rm /extra-packages
+
+RUN apt-get install -y gcc cpio g++ gawk make diffstat chrpath python3 vim locales-all python3-distutils
+
+COPY exempt_group /etc/sudoers.d/
+
+CMD /bin/bash

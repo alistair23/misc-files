@@ -1,0 +1,13 @@
+FROM registry.fedoraproject.org/fedora-toolbox
+
+RUN dnf -y install make vim gcc g++ flex bison bc dtc lzop git-email
+RUN dnf -y install arm-none-eabi-binutils arm-none-eabi-gcc arm-none-eabi-newlib arm-none-eabi-gcc-c++
+RUN dnf -y install libmpc-devel libyaml-devel python3-sphinx
+RUN dnf -y install chrpath cpio patch file diffstat rpcgen
+RUN dnf -y perl-Thread-Queue perl-File-Compare perl-File-Copy perl-FindBin perl-locale perl-open
+
+RUN pip3 install dtschema --upgrade
+
+RUN dnf clean all
+
+CMD /bin/sh

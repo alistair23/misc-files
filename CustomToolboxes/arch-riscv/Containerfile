@@ -1,0 +1,28 @@
+FROM docker.io/library/archlinux:base-devel
+
+ENV NAME=arch-riscv-toolbox VERSION=1
+LABEL com.github.containers.toolbox="true" \
+      com.github.debarshiray.toolbox="true" \
+      name="$NAME" \
+      version="$VERSION" \
+      usage="This image is meant to be used with the toolbox command" \
+      summary="Base image for creating Arch RISC-V development toolbox containers" \
+      maintainer="Alistair Francis <alistair.francis@wdc.com>"
+
+RUN pacman -Sqy
+
+RUN pacman -Sq --noconfirm bash-completion diffutils git iputils less lsof man-db man-pages mlocate mtr nss-mdns pigz procps-ng rsync sudo tcpdump time traceroute tree unzip wget which words zip acl bash curl libcap openssl python3 rpm systemd openssh bash-completion libcap
+
+RUN pacman -Sq --noconfirm riscv64-elf-binutils riscv64-elf-gcc riscv64-elf-gdb riscv64-elf-newlib
+RUN pacman -Sq --noconfirm riscv32-elf-binutils riscv32-elf-newlib riscv32-elf-gdb
+RUN pacman -Sq --noconfirm arm-none-eabi-binutils arm-none-eabi-gcc arm-none-eabi-newlib
+RUN pacman -Sq --noconfirm cmake make meson dtc vim cpio gcc jdk8-openjdk
+
+# Used to build seL4
+RUN pacman -Sq --noconfirm python-pip python-yaml python-jsonschema python-future protobuf python-protobuf python-libarchive-c python-pyelftools
+RUN pip install pyfdt jinja2
+
+RUN touch /etc/machine-id
+COPY sudoers /etc/sudoers.d/10-toolbox
+
+CMD /bin/bash

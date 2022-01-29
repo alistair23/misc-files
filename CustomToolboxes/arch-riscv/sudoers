@@ -1,0 +1,3 @@
+# Allow %wheel to run any command
+%wheel ALL=(ALL) NOPASSWD: ALL
+
