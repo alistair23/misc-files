@@ -1,0 +1,28 @@
+FROM registry.fedoraproject.org/fedora-toolbox
+
+RUN dnf -y install arm-none-eabi-gcc-cs arm-none-eabi-gcc-cs-c++ arm-none-eabi-newlib automake
+RUN dnf -y install bash bash-completion binutils-riscv64-linux-gnu bison bison-devel bzip2
+RUN dnf -y install cargo clang clang-devel cmake coreutils czmq-devel
+RUN dnf -y install dbus-devel diffutils dnf dnf-plugins-core dos2unix dtc
+RUN dnf -y install file findutils flex
+RUN dnf -y install gcc gcc-c++ gcc-c++-riscv64-linux-gnu gcc-riscv64-linux-gnu gdb git git-lfs glib-devel glib2-devel glibc-minimal-langpack glibc-static gnupg2-smime golang gvfs-client
+RUN dnf -y install help2man hostname iputils keyutils
+RUN dnf -y install less libcxx-devel libcxx-static libfl-static libftdi libftdi-devel libstdc++-static libtool libusb-devel lld lsof
+RUN dnf -y install make man-db man-pages meson-0.62.1 mlocate-0.26 mtr
+RUN dnf -y install ncurses-compat-libs ncurses-devel
+RUN dnf -y install openocd-0.11.0 openssh-clients openssl-devel pandoc patch perf
+RUN dnf -y install perl-JSON-PP pigz procps-ng
+RUN dnf -y install python3-beautifulsoup4 python3-devel python3-mako python3-pyyaml
+RUN dnf -y install rootfiles rsync rust
+RUN dnf -y install screen shadow-utils sqlite-devel srecord sssd-client
+RUN dnf -y install tar tcpdump texinfo thefuck time traceroute tree
+RUN dnf -y install unzip util-linux verilator vim-enhanced vim-minimal
+RUN dnf -y install wget which words xz zip
+
+RUN rpm -v --import https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+RUN dnf config-manager --add-repo https://download.sublimetext.com/rpm/dev/x86_64/sublime-text.repo
+RUN dnf -y install sublime-text
+
+RUN dnf clean all
+
+CMD /bin/sh
