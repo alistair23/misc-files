@@ -1,0 +1,26 @@
+FROM registry.fedoraproject.org/fedora-toolbox:36
+
+RUN dnf -y install make meson vim gcc g++ flex bison bc dtc lzop git-email
+RUN dnf -y install chrpath cpio diffstat lz4 patch rpcgen zstd
+RUN dnf -y install glibc-langpack-en
+
+RUN dnf -y install perl-Authen-SASL perl-AutoLoader perl-AutoSplit perl-B perl-Benchmark
+RUN dnf -y install perl-CPAN-Meta perl-CPAN-Meta-Requirements perl-CPAN-Meta-YAML perl-Carp perl-Class-Struct
+RUN dnf -y install perl-Data-Dumper perl-Devel-PPPort perl-Digest perl-Digest-HMAC perl-Digest-MD5 perl-Digest-SHA
+RUN dnf -y install perl-DynaLoader perl-Email-Valid perl-Encode perl-Encode-Locale perl-English perl-Errno perl-Error perl-Exporter
+RUN dnf -y install perl-ExtUtils-Command perl-ExtUtils-Constant perl-ExtUtils-Install perl-ExtUtils-MakeMaker perl-ExtUtils-Manifest perl-ExtUtils-ParseXS
+RUN dnf -y install perl-Fcntl perl-File-Basename perl-File-Compare perl-File-Copy perl-File-Find perl-File-Path perl-File-Temp perl-File-stat perl-FileHandle
+RUN dnf -y install perl-Filter perl-FindBin perl-GSSAPI perl-Getopt-Long perl-Getopt-Std perl-Git perl-HTTP-Tiny perl-I18N-Langinfo perl-IO perl-IO-Socket-IP
+RUN dnf -y install perl-IO-Socket-SSL perl-IPC-Open3 perl-JSON-PP perl-MIME-Base64 perl-MailTools perl-Math-BigInt perl-Math-Complex perl-Mozilla-CA perl-NDBM_File
+RUN dnf -y install perl-Net-SMTP-SSL perl-Net-SSLeay perl-POSIX perl-PathTools perl-Pod-Escapes perl-Pod-Perldoc perl-Pod-Simple perl-Pod-Usage perl-Scalar-List-Utils
+RUN dnf -y install perl-SelectSaver perl-Socket perl-Storable perl-Symbol perl-Sys-Hostname perl-Term-ANSIColor perl-Term-Cap perl-Term-ReadLine perl-TermReadKey perl-Test-Harness
+RUN dnf -y install perl-Text-ParseWords perl-Text-Tabs+Wrap perl-Thread-Queue perl-Tie perl-Time-HiRes perl-Time-Local perl-TimeDate perl-URI perl-Unicode-Normalize perl-base
+RUN dnf -y install perl-constant perl-devel perl-doc perl-encoding perl-if perl-interpreter perl-lib perl-libnet perl-libs perl-locale perl-mro perl-open perl-overload
+RUN dnf -y install perl-overloading perl-parent perl-podlators perl-srpm-macros perl-subs perl-threads perl-threads-shared perl-utils perl-vars perl-version 
+
+RUN export LC_ALL=en_US.UTF-8
+RUN dnf clean all
+
+CMD /bin/sh
+
+
