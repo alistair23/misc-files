@@ -1,12 +1,12 @@
-FROM docker.io/library/debian:10
+FROM docker.io/library/debian:11
 
-ENV NAME=debian10-toolbox VERSION=1
+ENV NAME=debian11-toolbox VERSION=11
 LABEL com.github.containers.toolbox="true" \
       com.github.debarshiray.toolbox="true" \
       name="$NAME" \
       version="$VERSION" \
       usage="This image is meant to be used with the toolbox command" \
-      summary="Base image for creating Debian 10 development toolbox containers" \
+      summary="Base image for creating Debian 11 development toolbox containers" \
       maintainer="Alistair Francis <alistair@alistair23.me>"
 
 RUN apt-get update
@@ -18,5 +18,10 @@ RUN rm /extra-packages
 RUN apt-get install -y gcc cpio g++ gawk make diffstat chrpath python3 vim locales-all python3-distutils
 
 COPY exempt_group /etc/sudoers.d/
+
+RUN sed -i -e 's/ ALL$/ NOPASSWD:ALL/' /etc/sudoers
+
+RUN touch /etc/localtime
+RUN echo VARIANT_ID=container >> /etc/os-release
 
 CMD /bin/bash
