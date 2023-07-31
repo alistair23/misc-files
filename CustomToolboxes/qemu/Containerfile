@@ -3,6 +3,7 @@ FROM registry.fedoraproject.org/fedora-toolbox
 RUN dnf -y install make meson vim gcc g++ flex bison bc dtc lzop git-email
 RUN dnf -y install glib2-devel pixman-devel SDL2-devel ncurses-devel
 RUN dnf -y install pinentry-gnome3
+RUN dnf -y install python3-pexpect
 
 RUN dnf clean all
 

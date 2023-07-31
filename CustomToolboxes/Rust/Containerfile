@@ -7,9 +7,9 @@ RUN dnf -y install dbus-devel diffutils dnf dnf-plugins-core dos2unix dtc
 RUN dnf -y install file findutils flex
 RUN dnf -y install gcc gcc-c++ gcc-c++-riscv64-linux-gnu gcc-riscv64-linux-gnu gdb git git-lfs glib-devel glib2-devel glibc-minimal-langpack glibc-static gnupg2-smime golang gvfs-client
 RUN dnf -y install help2man hostname iputils keyutils
-RUN dnf -y install less libcxx-devel libcxx-static libfl-static libftdi libftdi-devel libstdc++-static libtool libusb-devel lld lsof
+RUN dnf -y install less libcxx-devel libcxx-static libfl-static libftdi libftdi-devel libstdc++-static libtool lld lsof
 RUN dnf -y install make man-db man-pages meson mlocate mtr
-RUN dnf -y install ncurses-compat-libs ncurses-devel
+RUN dnf -y install ncurses-devel
 RUN dnf -y install openocd openssh-clients openssl-devel pandoc patch perf
 RUN dnf -y install perl-JSON-PP pigz procps-ng
 RUN dnf -y install python3-beautifulsoup4 python3-devel python3-mako python3-pyyaml
