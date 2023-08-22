@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora-toolbox:36
+FROM registry.fedoraproject.org/fedora-toolbox:latest
 
 RUN dnf -y install make meson vim gcc g++ flex bison bc dtc lzop git-email
 RUN dnf -y install chrpath cpio diffstat lz4 patch rpcgen zstd
