@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora-toolbox
+FROM registry.fedoraproject.org/fedora-toolbox:39
 
 RUN dnf -y install arm-none-eabi-gcc-cs arm-none-eabi-gcc-cs-c++ arm-none-eabi-newlib automake
 RUN dnf -y install bash bash-completion binutils-riscv64-linux-gnu bison bison-devel bzip2

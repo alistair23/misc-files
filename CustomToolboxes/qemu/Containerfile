@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora-toolbox
+FROM registry.fedoraproject.org/fedora-toolbox:39
 
 RUN dnf -y install make meson vim gcc g++ flex bison bc dtc lzop git-email
 RUN dnf -y install glib2-devel pixman-devel SDL2-devel ncurses-devel
