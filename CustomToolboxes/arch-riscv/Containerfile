@@ -19,8 +19,8 @@ RUN pacman -Sq --noconfirm arm-none-eabi-binutils arm-none-eabi-gcc arm-none-eab
 RUN pacman -Sq --noconfirm cmake make meson dtc vim cpio gcc jdk8-openjdk
 
 # Used to build seL4
-RUN pacman -Sq --noconfirm python-pip python-yaml python-jsonschema python-future protobuf python-protobuf python-libarchive-c python-pyelftools
-RUN pip install pyfdt jinja2
+# RUN pacman -Sq --noconfirm python-pip python-yaml python-jsonschema python-future protobuf python-protobuf python-libarchive-c python-pyelftools
+# RUN pip install pyfdt jinja2
 
 RUN touch /etc/machine-id
 COPY sudoers /etc/sudoers.d/10-toolbox

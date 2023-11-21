@@ -17,6 +17,7 @@ RUN dnf -y install perl-SelectSaver perl-Socket perl-Storable perl-Symbol perl-S
 RUN dnf -y install perl-Text-ParseWords perl-Text-Tabs+Wrap perl-Thread-Queue perl-Tie perl-Time-HiRes perl-Time-Local perl-TimeDate perl-URI perl-Unicode-Normalize perl-base
 RUN dnf -y install perl-constant perl-devel perl-doc perl-encoding perl-if perl-interpreter perl-lib perl-libnet perl-libs perl-locale perl-mro perl-open perl-overload
 RUN dnf -y install perl-overloading perl-parent perl-podlators perl-srpm-macros perl-subs perl-threads perl-threads-shared perl-utils perl-vars perl-version 
+RUN dnf -y install perl-IPC-Cmd
 
 RUN export LC_ALL=en_US.UTF-8
 RUN dnf clean all
